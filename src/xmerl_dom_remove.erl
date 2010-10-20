@@ -6,42 +6,34 @@
 
 -export([remove/2]).
 
--record(acc, {depth="/", element=#xmlElement{}}).
-
-clone(Depth, Element) ->
-    #acc{depth=Depth, element=Element#xmlElement{content=[]}}.
-
-depth(Current, Acc) ->
-    lists:flatten(io_lib:format("~s~s/",
-				[Acc#acc.depth, Current#xmlElement.name])).
-
-push(Acc, Content) ->
-    Element = Acc#acc.element,
-    NewContent = lists:append(Element#xmlElement.content, [Content]),
-    Acc#acc{element=Element#xmlElement{content=NewContent}}.
-
-remove(Target, [Current | T], Acc) when Target =:= Current ->
-    remove(Target, T, Acc);
-remove(Target, [Current=#xmlElement{content=[]} | T], Acc) ->
-    remove(Target, T, push(Acc, Current)); 
-remove(Target, [Current | T], Acc) when is_record(Current, xmlElement) ->
-    Depth = depth(Current, Acc),
-    Content = Current#xmlElement.content,
-    New = remove(Target, Content, clone(Depth, Current)),
-    remove(Target, T, push(Acc, New));
-remove(Target, [Current | T], Acc) ->
-    remove(Target, T, push(Acc, Current));
-remove(Target, [], Acc) ->
-    Acc#acc.element.
+remove_i(Target, E) when Target =:= E ->
+    drop;
+remove_i(Target, E=#xmlElement{content=[]}) ->
+    E;
+remove_i(Target, E) when is_record(E, xmlElement) ->
+    Content = E#xmlElement.content,
+    Parent = self(),
+    Work = fun(SubE) ->
+		   Parent ! {self(), remove_i(Target, SubE)}
+	   end,
+    Pids = [spawn(fun() -> Work(SubE) end) || SubE <- Content],
+    New = lists:foldl(fun(Pid, Acc) ->
+			       receive
+				   {Pid, drop} -> Acc;
+				   {Pid, Val} -> Acc ++ [Val]
+			       end
+		     end,
+		     [],
+		     Pids),
+    E#xmlElement{content=New};
+remove_i(Target, E) ->
+    E.
 
 remove(XPath, Doc) ->
     Targets = select(XPath, Doc),
     F = fun(Target, Doc) ->
-		#xmlElement{content=[NewDoc]} =
-		    remove(Target, [Doc], clone("/", #xmlElement{content=Doc})),
-    
-		NewDoc
-	end,
+		remove_i(Target, Doc)
+    	end,
     lists:foldl(F, Doc, Targets).
 
 %--------------------------
