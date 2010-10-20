@@ -6,32 +6,10 @@
 
 -export([remove/2]).
 
-remove_i(Target, E) when Target =:= E ->
-    []; % delete the item by returning an empty list
-remove_i(Target, E=#xmlElement{content=[]}) ->
-    [E];
-remove_i(Target, E) when is_record(E, xmlElement) ->
-    Content = E#xmlElement.content,
-    Parent = self(),
-    Work = fun(SubE) ->
-		   Parent ! {self(), remove_i(Target, SubE)}
-	   end,
-    Pids = [spawn(fun() -> Work(SubE) end) || SubE <- Content],
-    New = lists:foldl(fun(Pid, Acc) ->
-			       receive
-				   {Pid, Val} -> lists:flatten(Acc, Val)
-			       end
-		     end,
-		     [],
-		     Pids),
-    [E#xmlElement{content=New}];
-remove_i(Target, E) ->
-    [E].
-
 remove(XPath, Doc) ->
     Targets = select(XPath, Doc),
     F = fun(Target, Doc) ->
-		[NewDoc] = remove_i(Target, Doc),
+		[NewDoc] = xmerl_dom:process(Target, Doc, fun(E) -> [] end),
 		NewDoc
     	end,
     lists:foldl(F, Doc, Targets).
