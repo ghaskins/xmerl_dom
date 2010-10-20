@@ -1,9 +1,12 @@
 -module(xmerl_dom).
 -include_lib("xmerl/include/xmerl.hrl").
--export([remove/3, select/3]).
+-export([remove/3, insert/4, select/3]).
 
 remove(XPath, Doc, Options) ->
     xmerl_dom_remove:execute(XPath, Doc, Options).
+
+insert(E, XPath, Doc, Options) ->
+    xmerl_dom_insert:execute(E, XPath, Doc, Options).
 
 select(Target, E, Fun) when Target =:= E ->
     Fun(E);
