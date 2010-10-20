@@ -7,9 +7,9 @@
 -export([remove/2]).
 
 remove_i(Target, E) when Target =:= E ->
-    drop;
+    []; % delete the item by returning an empty list
 remove_i(Target, E=#xmlElement{content=[]}) ->
-    E;
+    [E];
 remove_i(Target, E) when is_record(E, xmlElement) ->
     Content = E#xmlElement.content,
     Parent = self(),
@@ -19,20 +19,20 @@ remove_i(Target, E) when is_record(E, xmlElement) ->
     Pids = [spawn(fun() -> Work(SubE) end) || SubE <- Content],
     New = lists:foldl(fun(Pid, Acc) ->
 			       receive
-				   {Pid, drop} -> Acc;
-				   {Pid, Val} -> Acc ++ [Val]
+				   {Pid, Val} -> lists:flatten(Acc, Val)
 			       end
 		     end,
 		     [],
 		     Pids),
-    E#xmlElement{content=New};
+    [E#xmlElement{content=New}];
 remove_i(Target, E) ->
-    E.
+    [E].
 
 remove(XPath, Doc) ->
     Targets = select(XPath, Doc),
     F = fun(Target, Doc) ->
-		remove_i(Target, Doc)
+		[NewDoc] = remove_i(Target, Doc),
+		NewDoc
     	end,
     lists:foldl(F, Doc, Targets).
 
