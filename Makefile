@@ -9,8 +9,6 @@ OBJDIR=./obj
 BASEDIR=$(OBJDIR)/$(NAME)-$(VERSION)
 EBINDIR=$(BASEDIR)/ebin
 DOCDIR=$(BASEDIR)/doc
-SHEADERS += $(shell find include/*.hrl)
-HEADERS = $(patsubst include/%.hrl,$(BASEDIR)/include/%.hrl,$(SHEADERS))
 SRCS += $(shell find src/*.erl)
 OBJS = $(patsubst src/%.erl,$(EBINDIR)/%.beam,$(SRCS))
 WSMODULES = $(patsubst src/%.erl,%, $(SRCS))
@@ -35,7 +33,7 @@ $(BASEDIR)/include:
 $(BASEDIR)/include/%.hrl: include/%.hrl $(BASEDIR)/include
 	@cp $< $@
 
-$(EBINDIR)/$(NAME).app: $(NAME).app Makefile $(HEADERS)
+$(EBINDIR)/$(NAME).app: $(NAME).app Makefile
 	@echo "Compiling (APPSPEC) $< to $@"
 	cat $< | sed "s/__MODULES__/$(MODULES)/" | sed 's/\[, /\[/' \
 	| sed "s/__VERSION__/$(VERSION)/g" > $@ 
