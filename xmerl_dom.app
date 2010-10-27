@@ -3,7 +3,6 @@
   {vsn, "__VERSION__"},
   {modules, [__MODULES__]},
   {registered, []},
-  {applications, [kernel, stdlib]},
-  {mod, {xmerl_dom_app, []}}
+  {applications, [kernel, stdlib]}
  ]
 }.	       
